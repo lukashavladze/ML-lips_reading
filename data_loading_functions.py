@@ -2,7 +2,7 @@ import cv2
 import gdown
 from typing import List
 import numpy as np
-import keras.src.layers
+from keras import layers
 import tensorflow as tf
 from matplotlib import pyplot as plt
 import imageio
@@ -14,50 +14,6 @@ import os
 # output = 'data.zip'
 # gdown.download(url, output, quiet=False)
 # gdown.extractall('data.zip')
-
-# my added function
-def preprocess_frame(frame):
-    """ Preprocess the frame to remove dense regions, normalize shades, and enhance visibility. """
-
-    # Convert to grayscale
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) to normalize brightness
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    gray = clahe.apply(gray)
-
-    # Crop frame (focus on region of interest)
-    cropped = gray[190:236, 80:220]
-
-    # Normalize pixel values to range [0,1] for ML models
-    normalized = cropped.astype(np.float32) / 255.0
-
-    return normalized
-
-
-def load_video_mpg(path: str) -> np.ndarray:
-    """ Load MPG video, process each frame, and return as a NumPy array. """
-
-    cap = cv2.VideoCapture(path)
-    frames = []
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        processed_frame = preprocess_frame(frame)
-        frames.append(processed_frame)
-
-    cap.release()
-
-    # Convert to NumPy array with shape (num_frames, height, width, 1) for ML models
-    frames_array = np.expand_dims(np.array(frames, dtype=np.float32), axis=-1)
-
-    return frames_array
-
-
-
 
 def load_video(path:str) -> List[float]:
 
@@ -77,17 +33,14 @@ def load_video(path:str) -> List[float]:
 # vocabulary for text generation
 vocab = [x for x in "abcdefghijklmnopqrstuvwxyz'?!123456789 "]
 vocab_georgian = [x for x in "აბგდევზთიკლმნოპჟრსტუფქღყშჩცძწჭხჯჰ'?!123456789 "]
-
 #function for converting numbers into chars and chars to num
 # oov_token = if no char then returns empty string
 
-char_to_num = keras.src.layers.StringLookup(vocabulary=vocab, oov_token="")
-num_to_char = keras.src.layers.StringLookup(vocabulary=char_to_num.get_vocabulary(), oov_token="", invert=True)
+char_to_num = tf.keras.layers.StringLookup(vocabulary=vocab, oov_token="")
+num_to_char = tf.keras.layers.StringLookup(vocabulary=char_to_num.get_vocabulary(), oov_token="", invert=True)
 
 #print(f"the vocabulary is: {char_to_num.get_vocabulary()}"
 #      f"(size ={char_to_num.vocabulary_size()}")
-
-#print(char_to_num(["a", "b"]))
 
 def load_alignments(path:str) -> List[str]:
     with open(path, 'r') as f:
@@ -106,7 +59,6 @@ def load_data(path: str):
     video_path = os.path.join('data', 's1', f"{file_name}.mpg")
     alignment_path = os.path.join('data', 'alignments', 's1', f"{file_name}.align")
     frames = load_video(video_path)
-    #frames = load_video_mpg(video_path)
     alignments = load_alignments(alignment_path)
 
     return frames, alignments
@@ -114,17 +66,19 @@ def load_data(path: str):
 test_path = ".\\data\\s1\\bbal6n.mpg"
 
 # getting file name from data
-tf.convert_to_tensor(test_path).numpy().decode('utf-8').split("\\")[-1].split('.')[0]
+#print(tf.convert_to_tensor(test_path).numpy().decode('utf-8').split("\\")[-1].split('.')[0])
 
 frames, alignments = load_data(tf.convert_to_tensor(test_path))
+#print([bytes.decode(x) for x in num_to_char(alignments.numpy()).numpy()])
 
-print([bytes.decode(x) for x in num_to_char(alignments.numpy()).numpy()])
+print(char_to_num(['n','i','c','k']))
+
+
 a = tf.strings.reduce_join([bytes.decode(x) for x in num_to_char(alignments.numpy()).numpy()])
 
 def mappable_function(path: str) -> List[str]:
     result = tf.py_function(load_data, [path], (tf.float32, tf.int64))
     return result
-
 
 # CREATE DATA PIPELINE
 
@@ -135,17 +89,19 @@ data = data.padded_batch(2, padded_shapes=([75, None, None, None], [40]))
 data = data.prefetch(tf.data.AUTOTUNE)
 
 frames, alignments = data.as_numpy_iterator().next()
-
 test = data.as_numpy_iterator()
 val = test.next()
 
-# transforms numpy array into animation
-frames_to_save = np.squeeze(val[0][1])
-frames_to_save = (frames_to_save * 255).astype(np.uint8)
+print(type(char_to_num(["l","u"])))
 
-imageio.mimsave('./animation_[0, 1].gif', frames_to_save, fps=10)
+#imageio.mimsave('./animation-111.gif', val[0][1], fps=10)
+#print(tf.strings.reduce_join([num_to_char(word) for word in val[0][1]]))
 
-print(tf.strings.reduce_join([num_to_char(word) for word in frames_to_save[0][1]]))
+
+
+
+
+
 
 
 
