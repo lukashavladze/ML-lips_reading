@@ -2,7 +2,6 @@ import cv2
 import gdown
 from typing import List
 import numpy as np
-from keras import layers
 import tensorflow as tf
 from matplotlib import pyplot as plt
 import imageio
