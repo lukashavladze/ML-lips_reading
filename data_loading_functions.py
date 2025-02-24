@@ -71,11 +71,8 @@ test_path = ".\\data\\s1\\bbal6n.mpg"
 frames, alignments = load_data(tf.convert_to_tensor(test_path))
 #print([bytes.decode(x) for x in num_to_char(alignments.numpy()).numpy()])
 
-print(char_to_num(['n','i','c','k']))
-
 
 a = tf.strings.reduce_join([bytes.decode(x) for x in num_to_char(alignments.numpy()).numpy()])
-
 def mappable_function(path: str) -> List[str]:
     result = tf.py_function(load_data, [path], (tf.float32, tf.int64))
     return result
@@ -89,13 +86,14 @@ data = data.padded_batch(2, padded_shapes=([75, None, None, None], [40]))
 data = data.prefetch(tf.data.AUTOTUNE)
 
 frames, alignments = data.as_numpy_iterator().next()
+
 test = data.as_numpy_iterator()
 val = test.next()
 
-print(type(char_to_num(["l","u"])))
 
-#imageio.mimsave('./animation-111.gif', val[0][1], fps=10)
-#print(tf.strings.reduce_join([num_to_char(word) for word in val[0][1]]))
+imageio.mimsave('./animation-00.gif', val[0][1], fps=10)
+print(tf.strings.reduce_join([num_to_char(word) for word in val[1][0]]))
+print(tf.strings.reduce_join([num_to_char(word) for word in val[1][1]]))
 
 
 
