@@ -31,6 +31,11 @@ model.add(Dense(data_loading_functions.char_to_num.vocabulary_size() + 1, kernel
 
 yhat = model.predict(data_loading_functions.val[0])
 
-print(yhat)
 prediction_test = tf.strings.reduce_join([data_loading_functions.num_to_char(tf.argmax(x)) for x in yhat[1]])
-print(prediction_test)
+
+print(model.input_shape)
+print(model.output_shape)
+# returning what our model predicted
+print(tf.argmax(yhat[0], axis=1))
+
+print(tf.strings.reduce_join([data_loading_functions.num_to_char(tf.argmax(x)) for x in yhat[0]]))

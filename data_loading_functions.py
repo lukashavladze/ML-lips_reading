@@ -81,7 +81,7 @@ def mappable_function(path: str) -> List[str]:
 data = tf.data.Dataset.list_files('./data/s1/*.mpg')
 data = data.shuffle(500)
 data = data.map(mappable_function)
-data = data.padded_batch(1, padded_shapes=([75, None, None, None], [40]))
+data = data.padded_batch(2, padded_shapes=([75, None, None, None], [40]))
 data = data.prefetch(tf.data.AUTOTUNE)
 
 frames, alignments = data.as_numpy_iterator().next()
