@@ -79,15 +79,20 @@ def mappable_function(path: str) -> List[str]:
 # CREATE DATA PIPELINE
 
 data = tf.data.Dataset.list_files('./data/s1/*.mpg')
-data = data.shuffle(500)
+data = data.shuffle(500, reshuffle_each_iteration=False)
 data = data.map(mappable_function)
 data = data.padded_batch(2, padded_shapes=([75, None, None, None], [40]))
 data = data.prefetch(tf.data.AUTOTUNE)
 
+#splitting data for training
+train = data.take(450)
+test = data.skip(450)
+
+
 frames, alignments = data.as_numpy_iterator().next()
 
-test = data.as_numpy_iterator()
-val = test.next()
+test1 = data.as_numpy_iterator()
+val = test1.next()
 
 
 imageio.mimsave('./animation-00.gif', val[0][1], fps=10)

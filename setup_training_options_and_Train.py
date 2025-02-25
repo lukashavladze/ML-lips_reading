@@ -36,15 +36,19 @@ class ProduceExample(tf.keras.callbacks.Callback):
         yhat = self.model.predict(data[0])
         decoded = tf.keras.backend.ctc_decode(yhat, [75, 75], greedy=False)[0][0].numpy()
         for x in range(len(yhat)):
-            print('Original:', tf.strings.reduce_join([data_loading_functions.vocab[word] + '' for word in data[1][x]]).numpy().decode('utf-8'))
-            print('Prediction:', tf.strings.reduce_join([data_loading_functions.vocab[word] + '' for word in decoded[x]]).numpy().decode('utf-8'))
-            print('-' * 100)
+            # print('Original:', tf.strings.reduce_join([data_loading_functions.vocab[word] + '' for word in data[1][x]]).numpy().decode('utf-8'))
+            # print('Prediction:', tf.strings.reduce_join([data_loading_functions.vocab[word] + '' for word in decoded[x]]).numpy().decode('utf-8'))
+            # print('-' * 100)
+            print('Original:', tf.strings.reduce_join(data_loading_functions.num_to_char(data[1][x])).numpy().decode('utf-8'))
+            print('Prediction:', tf.strings.reduce_join(data_loading_functions.num_to_char(decoded[x])).numpy().decode('utf-8'))
+            print('~' * 100)
 
 
 Design_deep_neural_network.model.compile(optimizer=Adam(learning_rate=0.0001), loss=CTCLoss)
-checkpoint_callback = ModelCheckpoint(os.path.join('models', 'checkpoint'), monitor='loss', save_weights_only=True)
+checkpoint_callback = ModelCheckpoint(os.path.join('models', 'checkpoint.weights.h5'), monitor='loss', save_weights_only=True)
+#checkpoint_callback = ModelCheckpoint(os.path.join('models', 'checkpoint'), monitor='loss', save_weights_only=True)
 schedule_callback = LearningRateScheduler(scheduler)
-example_callback = ProduceExample(data_loading_functions.data)
+example_callback = ProduceExample(data_loading_functions.test)
 
-Design_deep_neural_network.model.fit(data_loading_functions.data, epochs=50, callbacks=[checkpoint_callback, schedule_callback, example_callback])
+Design_deep_neural_network.model.fit(data_loading_functions.train, validation_data=data_loading_functions.test, epochs=50, callbacks=[checkpoint_callback, schedule_callback, example_callback])
 
