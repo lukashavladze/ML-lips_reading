@@ -1,6 +1,13 @@
 import tensorflow as tf
 import numpy as np
 import data_loading_functions
+from keras.models import Sequential
+from keras.layers import Conv3D, LSTM, Dense, Dropout, Bidirectional, MaxPool3D, Activation, Reshape, SpatialDropout3D, BatchNormalization, TimeDistributed, Flatten
+from keras.optimizers import Adam
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler
+import Design_deep_neural_network
+import os
+
 
 def scheduler(epoch, lr):
     if epoch < 30:
@@ -32,4 +39,12 @@ class ProduceExample(tf.keras.callbacks.Callback):
             print('Original:', tf.strings.reduce_join([data_loading_functions.vocab[word] + '' for word in data[1][x]]).numpy().decode('utf-8'))
             print('Prediction:', tf.strings.reduce_join([data_loading_functions.vocab[word] + '' for word in decoded[x]]).numpy().decode('utf-8'))
             print('-' * 100)
+
+
+Design_deep_neural_network.model.compile(optimizer=Adam(learning_rate=0.0001), loss=CTCLoss)
+checkpoint_callback = ModelCheckpoint(os.path.join('models', 'checkpoint'), monitor='loss', save_weights_only=True)
+schedule_callback = LearningRateScheduler(scheduler)
+example_callback = ProduceExample(data_loading_functions.data)
+
+Design_deep_neural_network.model.fit(data_loading_functions.data, epochs=50, callbacks=[checkpoint_callback, schedule_callback, example_callback])
 
