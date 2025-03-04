@@ -48,4 +48,4 @@ def hog_svm_face_detection(video_path):
 
 
 # Example usage
-hog_svm_face_detection('test_vid1.mp4')
+hog_svm_face_detection('test_eng_vid.mp4')

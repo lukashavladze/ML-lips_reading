@@ -1,2 +1,8 @@
 data/
 venv/
+*.xml
+*.dat
+*.mp4
+*.caffemodel
+*.gif
+*.zip

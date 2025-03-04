@@ -28,6 +28,7 @@ def CTCLoss(y_true, y_pred):
     return loss
 
 class ProduceExample(tf.keras.callbacks.Callback):
+
     def __init__(self, dataset) -> None:
         self.dataset = dataset.as_numpy_iterator()
 
@@ -50,5 +51,5 @@ checkpoint_callback = ModelCheckpoint(os.path.join('models', 'checkpoint.weights
 schedule_callback = LearningRateScheduler(scheduler)
 example_callback = ProduceExample(data_loading_functions.test)
 
-Design_deep_neural_network.model.fit(data_loading_functions.train, validation_data=data_loading_functions.test, epochs=50, callbacks=[checkpoint_callback, schedule_callback, example_callback])
+#Design_deep_neural_network.model.fit(data_loading_functions.train, validation_data=data_loading_functions.test, epochs=50, callbacks=[checkpoint_callback, schedule_callback, example_callback])
 

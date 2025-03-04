@@ -6,6 +6,8 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 import imageio
 import os
+import dlib
+
 
 # for downloading data
 
@@ -95,9 +97,100 @@ test1 = data.as_numpy_iterator()
 val = test1.next()
 
 
-imageio.mimsave('./animation-00.gif', val[0][1], fps=10)
-print(tf.strings.reduce_join([num_to_char(word) for word in val[1][0]]))
-print(tf.strings.reduce_join([num_to_char(word) for word in val[1][1]]))
+#imageio.mimsave('./animation-00.gif', val[0][1], fps=10)
+# print(tf.strings.reduce_join([num_to_char(word) for word in val[1][0]]))
+# print(tf.strings.reduce_join([num_to_char(word) for word in val[1][1]]))
+
+# Paths to models
+face_model_path = 'C:\\Users\\LSHAVLADZE\\PycharmProjects\\ML-lips_reading\\haarcascade_frontalface_default.xml'
+shape_predictor_path = 'C:\\Users\\LSHAVLADZE\\PycharmProjects\\ML-lips_reading\\shape_predictor_68_face_landmarks.dat'
+
+# Load face detector and shape predictor from dlib
+face_detector = dlib.get_frontal_face_detector()
+shape_predictor = dlib.shape_predictor(shape_predictor_path)
+
+
+def detect_mouth(frame):
+    """Detect and return the mouth region using dlib landmarks."""
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # Detect faces using Dlib
+    faces = face_detector(gray)
+
+    for face in faces:
+        # Get facial landmarks
+        landmarks = shape_predictor(gray, face)
+
+        # Points for the mouth (usually points 48 to 67 in the 68 landmarks model)
+        mouth_points = []
+        for i in range(48, 68):
+            mouth_points.append((landmarks.part(i).x, landmarks.part(i).y))
+
+        # Create a convex hull around the mouth region
+        mouth_points = np.array(mouth_points, dtype=np.int32)
+        x, y, w, h = cv2.boundingRect(mouth_points)
+
+        # Crop the mouth region from the image
+        cropped_mouth = frame[y:y + h, x:x + w]
+
+        return cropped_mouth  # Return the cropped mouth region
+
+    return None  # Return None if no mouth is detected
+
+
+def load_video_new(path: str, save_gif=False) -> np.ndarray:
+    cap = cv2.VideoCapture(path)
+    frames = []
+    gif_frames = []  # For saving processed frames as a GIF
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Use mouth detection to get the cropped mouth region
+        cropped_mouth = detect_mouth(frame)
+
+        if cropped_mouth is not None:
+            # Resize for consistency
+            resized_mouth = cv2.resize(cropped_mouth, (140, 46))
+
+            # Normalize the frame
+            mean = np.mean(resized_mouth)
+            std = np.std(resized_mouth) + 1e-6  # Avoid division by zero
+            normalized_frame = (resized_mouth - mean) / std
+
+            frames.append(normalized_frame)
+
+            # Show the cropped and processed frame
+            cv2.imshow("Mouth Detection", resized_mouth)
+
+            # Store frame for GIF creation
+            gif_frames.append(resized_mouth)
+
+        else:
+            # If no mouth is detected, skip this frame or handle as needed
+            print("Mouth not detected in the current frame.")
+            continue
+
+        if cv2.waitKey(25) & 0xFF == ord('q'):  # Press 'q' to exit
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+    # Save GIF if requested
+    if save_gif:
+        imageio.mimsave("processed_mouth_new_111.gif", gif_frames, fps=10)
+
+    # Convert list of frames to a NumPy array
+    return np.array(frames, dtype=np.float32)
+
+
+# Test with a sample video
+video_path = ".\\data\\s1\\bbal6n.mpg"
+video_path1 = "C:\\Users\\LSHAVLADZE\\PycharmProjects\\ML-lips_reading\\test_eng_vid.mp4"
+processed_frames = load_video_new(video_path1, save_gif=True)
 
 
 

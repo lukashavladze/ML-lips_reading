@@ -60,4 +60,4 @@ def dnn_face_detection(video_path):
 
 
 # Example usage
-dnn_face_detection('test_vid1.mp4')
+dnn_face_detection('test_eng_vid.mp4')
