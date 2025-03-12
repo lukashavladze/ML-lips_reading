@@ -45,11 +45,11 @@ class ProduceExample(tf.keras.callbacks.Callback):
             print('~' * 100)
 
 
-Design_deep_neural_network.model.compile(optimizer=Adam(learning_rate=0.0001), loss=CTCLoss)
-checkpoint_callback = ModelCheckpoint(os.path.join('models', 'checkpoint.weights.h5'), monitor='loss', save_weights_only=True)
+# Design_deep_neural_network.model.compile(optimizer=Adam(learning_rate=0.0001), loss=CTCLoss)
+# checkpoint_callback = ModelCheckpoint(os.path.join('models', 'checkpoint.weights.h5'), monitor='loss', save_weights_only=True)
 #checkpoint_callback = ModelCheckpoint(os.path.join('models', 'checkpoint'), monitor='loss', save_weights_only=True)
-schedule_callback = LearningRateScheduler(scheduler)
-example_callback = ProduceExample(data_loading_functions.test)
+# schedule_callback = LearningRateScheduler(scheduler)
+# example_callback = ProduceExample(data_loading_functions.test)
 
 #Design_deep_neural_network.model.fit(data_loading_functions.train, validation_data=data_loading_functions.test, epochs=50, callbacks=[checkpoint_callback, schedule_callback, example_callback])
 

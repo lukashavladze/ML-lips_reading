@@ -29,9 +29,9 @@ model.add(Dropout(.5))
 model.add(Dense(data_loading_functions.char_to_num.vocabulary_size() + 1, kernel_initializer='he_normal', activation='softmax'))
 
 
-yhat = model.predict(data_loading_functions.val[0])
+#yhat = model.predict(data_loading_functions.val[0])
 
-prediction_test = tf.strings.reduce_join([data_loading_functions.num_to_char(tf.argmax(x)) for x in yhat[1]])
+#prediction_test = tf.strings.reduce_join([data_loading_functions.num_to_char(tf.argmax(x)) for x in yhat[1]])
 
 # print(model.input_shape)
 # print(model.output_shape)

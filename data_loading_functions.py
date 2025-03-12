@@ -7,8 +7,12 @@ from matplotlib import pyplot as plt
 import imageio
 import os
 import dlib
+from keras.models import Sequential
+from keras.layers import Conv3D, LSTM, Dense, Dropout, Bidirectional, MaxPool3D, Activation, Reshape, SpatialDropout3D, BatchNormalization, TimeDistributed, Flatten
+from keras.optimizers import Adam
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 
-
+my_video_path = 'C:\\Users\\LSHAVLADZE\\PycharmProjects\\ML-lips_reading\\data\\s1\\sriuzp.mpg'
 # for downloading data
 
 # url = "https://drive.google.com/uc?id=1YlvpDLix3S-U8fd-gqRwPcWXAXm8JwjL"
@@ -25,11 +29,50 @@ def load_video(path:str) -> List[float]:
         ret, frame = cap.read()
         frame = tf.image.rgb_to_grayscale(frame)
         frames.append(frame[190:236, 80:220, :])
+
     cap.release()
 
     mean = tf.math.reduce_mean(frames)
     std = tf.math.reduce_std(tf.cast(frames, tf.float32))
     return tf.cast((frames - mean), tf.float32) / std
+
+
+def load_video_test(path:str) -> List[float]:
+
+    cap = cv2.VideoCapture(path)
+    frames = []
+    # capturing frames from location: 190:236 ...
+    for _ in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))):
+        ret, frame = cap.read()
+        #frame = tf.image.rgb_to_grayscale(frame)
+        #frame = frame.numpy() # my added
+        # cv2.imshow("frames window:", frame)
+        # cv2.waitKey(1)
+        cropped_frame = frame[500:600, 250:450, :]
+        resized_frame = cv2.resize(cropped_frame, (140, 46))
+        resized_frame = tf.image.rgb_to_grayscale(resized_frame)
+        frames.append(resized_frame)
+        # cv2.imshow("Resized Frame", resized_frame)
+        # cv2.waitKey(1)
+        #frames.append(frame[500:600, 250:450, :])
+        # cv2.imshow("frames window:", frames[_])
+        # cv2.waitKey(2)
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+    #frames_np = np.array(frames, dtype=np.float32)
+
+    mean = tf.math.reduce_mean(frames)
+    std = tf.math.reduce_std(tf.cast(frames, tf.float32))
+    return tf.cast((frames - mean), tf.float32) / std
+
+
+predictor_path = "C:\\Users\\LSHAVLADZE\\PycharmProjects\\ML-lips_reading\\shape_predictor_68_face_landmarks.dat"
+
+# Initialize dlib's face detector and shape predictor
+detector = dlib.get_frontal_face_detector()
+predictor = dlib.shape_predictor(predictor_path)
 
 # vocabulary for text generation
 vocab = [x for x in "abcdefghijklmnopqrstuvwxyz'?!123456789 "]
@@ -40,8 +83,6 @@ vocab_georgian = [x for x in "აბგდევზთიკლმნოპჟ�
 char_to_num = tf.keras.layers.StringLookup(vocabulary=vocab, oov_token="")
 num_to_char = tf.keras.layers.StringLookup(vocabulary=char_to_num.get_vocabulary(), oov_token="", invert=True)
 
-#print(f"the vocabulary is: {char_to_num.get_vocabulary()}"
-#      f"(size ={char_to_num.vocabulary_size()}")
 
 def load_alignments(path:str) -> List[str]:
     with open(path, 'r') as f:
@@ -64,16 +105,63 @@ def load_data(path: str):
 
     return frames, alignments
 
-test_path = ".\\data\\s1\\bbal6n.mpg"
+def load_data_new(path: str):
+    path = bytes.decode(path.numpy())
+    #frames = load_video_new(path)
+    #frames = load_video(path)
+    frames = load_video_test(path)
+    #frames = load_video_test_1(path)
+    return frames
+
+
+model = Sequential()
+model.add(Conv3D(128, 3, input_shape=(75, 46, 140, 1), padding='same'))
+model.add(Activation('relu'))
+model.add(MaxPool3D((1, 2, 2)))
+
+model.add(Conv3D(256, 3, padding='same'))
+model.add(Activation('relu'))
+model.add(MaxPool3D((1, 2, 2)))
+
+model.add(Conv3D(75, 3, padding='same'))
+model.add(Activation('relu'))
+model.add(MaxPool3D((1, 2, 2)))
+
+model.add(TimeDistributed(Flatten()))
+
+model.add(Bidirectional(LSTM(128, kernel_initializer='Orthogonal', return_sequences=True)))
+model.add(Dropout(.5))
+
+model.add(Bidirectional(LSTM(128, kernel_initializer='Orthogonal', return_sequences=True)))
+model.add(Dropout(.5))
+
+model.add(Dense(char_to_num.vocabulary_size() + 1, kernel_initializer='he_normal', activation='softmax'))
+
+
+#load_data_new_Result = load_data_new(tf.convert_to_tensor(my_video_path))
+# frames_75 = load_data_new_Result[:75]
+# frames_75 = tf.expand_dims(frames_75, axis=0)
+# yhat1 = model.predict(frames_75)
+#yhat1 = model.predict(tf.expand_dims(load_data_new_Result, axis=0))
+#yhat = model.predict(tf.expand_dims(load_data_new_Result, axis=0))
+
+#decoded = tf.keras.backend.ctc_decode(yhat1, input_length=[75], greedy=True)[0][0].numpy()
+
+# print('~'*100)
+# print("our text")
+# print([tf.strings.reduce_join([num_to_char(word) for word in sentence]) for sentence in decoded])
+
+
+#test_path = ".\\data\\s1\\bbal6n.mpg"
 
 # getting file name from data
 #print(tf.convert_to_tensor(test_path).numpy().decode('utf-8').split("\\")[-1].split('.')[0])
 
-frames, alignments = load_data(tf.convert_to_tensor(test_path))
+#frames, alignments = load_data(tf.convert_to_tensor(test_path))
 #print([bytes.decode(x) for x in num_to_char(alignments.numpy()).numpy()])
 
 
-a = tf.strings.reduce_join([bytes.decode(x) for x in num_to_char(alignments.numpy()).numpy()])
+#a = tf.strings.reduce_join([bytes.decode(x) for x in num_to_char(alignments.numpy()).numpy()])
 def mappable_function(path: str) -> List[str]:
     result = tf.py_function(load_data, [path], (tf.float32, tf.int64))
     return result
@@ -97,100 +185,10 @@ test1 = data.as_numpy_iterator()
 val = test1.next()
 
 
-#imageio.mimsave('./animation-00.gif', val[0][1], fps=10)
-# print(tf.strings.reduce_join([num_to_char(word) for word in val[1][0]]))
-# print(tf.strings.reduce_join([num_to_char(word) for word in val[1][1]]))
+imageio.mimsave('./animation-00.gif', val[0][1], fps=10)
+print(tf.strings.reduce_join([num_to_char(word) for word in val[1][0]]))
+print(tf.strings.reduce_join([num_to_char(word) for word in val[1][1]]))
 
-# Paths to models
-face_model_path = 'C:\\Users\\LSHAVLADZE\\PycharmProjects\\ML-lips_reading\\haarcascade_frontalface_default.xml'
-shape_predictor_path = 'C:\\Users\\LSHAVLADZE\\PycharmProjects\\ML-lips_reading\\shape_predictor_68_face_landmarks.dat'
-
-# Load face detector and shape predictor from dlib
-face_detector = dlib.get_frontal_face_detector()
-shape_predictor = dlib.shape_predictor(shape_predictor_path)
-
-
-def detect_mouth(frame):
-    """Detect and return the mouth region using dlib landmarks."""
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    # Detect faces using Dlib
-    faces = face_detector(gray)
-
-    for face in faces:
-        # Get facial landmarks
-        landmarks = shape_predictor(gray, face)
-
-        # Points for the mouth (usually points 48 to 67 in the 68 landmarks model)
-        mouth_points = []
-        for i in range(48, 68):
-            mouth_points.append((landmarks.part(i).x, landmarks.part(i).y))
-
-        # Create a convex hull around the mouth region
-        mouth_points = np.array(mouth_points, dtype=np.int32)
-        x, y, w, h = cv2.boundingRect(mouth_points)
-
-        # Crop the mouth region from the image
-        cropped_mouth = frame[y:y + h, x:x + w]
-
-        return cropped_mouth  # Return the cropped mouth region
-
-    return None  # Return None if no mouth is detected
-
-
-def load_video_new(path: str, save_gif=False) -> np.ndarray:
-    cap = cv2.VideoCapture(path)
-    frames = []
-    gif_frames = []  # For saving processed frames as a GIF
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        # Use mouth detection to get the cropped mouth region
-        cropped_mouth = detect_mouth(frame)
-
-        if cropped_mouth is not None:
-            # Resize for consistency
-            resized_mouth = cv2.resize(cropped_mouth, (140, 46))
-
-            # Normalize the frame
-            mean = np.mean(resized_mouth)
-            std = np.std(resized_mouth) + 1e-6  # Avoid division by zero
-            normalized_frame = (resized_mouth - mean) / std
-
-            frames.append(normalized_frame)
-
-            # Show the cropped and processed frame
-            cv2.imshow("Mouth Detection", resized_mouth)
-
-            # Store frame for GIF creation
-            gif_frames.append(resized_mouth)
-
-        else:
-            # If no mouth is detected, skip this frame or handle as needed
-            print("Mouth not detected in the current frame.")
-            continue
-
-        if cv2.waitKey(25) & 0xFF == ord('q'):  # Press 'q' to exit
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
-
-    # Save GIF if requested
-    if save_gif:
-        imageio.mimsave("processed_mouth_new_111.gif", gif_frames, fps=10)
-
-    # Convert list of frames to a NumPy array
-    return np.array(frames, dtype=np.float32)
-
-
-# Test with a sample video
-video_path = ".\\data\\s1\\bbal6n.mpg"
-video_path1 = "C:\\Users\\LSHAVLADZE\\PycharmProjects\\ML-lips_reading\\test_eng_vid.mp4"
-processed_frames = load_video_new(video_path1, save_gif=True)
 
 
 
